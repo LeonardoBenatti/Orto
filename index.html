@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Orto</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>🌿 Orto</h1>
+    <p>
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">Connessione...</span>
+    </p>
+    <p class="error-msg" id="error-msg">Impossibile connettersi a Home Assistant.</p>
+  </header>
+
+  <div id="stazioni-container"></div>
+
+  <div class="section-label">Pompe</div>
+  <div class="grid-2" id="pompe-container"></div>
+
+  <div class="footer" id="last-update">—</div>
+
+</div>
+<script src="config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
