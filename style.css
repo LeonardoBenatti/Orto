@@ -469,6 +469,9 @@ body {
 .pump-info .pump-name {
   font-size: 14px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .pump-info .pump-state {

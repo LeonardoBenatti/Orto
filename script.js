@@ -74,13 +74,38 @@ function formattaBatteria(stateValue) {
 const tabBtns = document.querySelectorAll('.tab-btn');
 const tabContents = document.querySelectorAll('.tab-content');
 
+// Recupera l'ultimo tab visitato (di default apre 'mappa')
+const savedTab = localStorage.getItem('orto_active_tab') || 'mappa';
+
+// Pulisce lo stato 'active' da tutti i bottoni e contenuti
+tabBtns.forEach(b => b.classList.remove('active'));
+tabContents.forEach(c => c.classList.remove('active'));
+
+// Imposta il tab salvato come attivo
+const initialBtn = document.querySelector(`.tab-btn[data-tab="${savedTab}"]`);
+const initialTab = document.getElementById(`tab-${savedTab}`);
+if (initialBtn && initialTab) {
+  initialBtn.classList.add('active');
+  initialTab.classList.add('active');
+} else {
+  // Fallback di sicurezza alla mappa
+  document.querySelector('.tab-btn[data-tab="mappa"]').classList.add('active');
+  document.getElementById('tab-mappa').classList.add('active');
+}
+
+// Gestione del click sui tab
 tabBtns.forEach(btn => {
   btn.addEventListener('click', () => {
     const target = btn.dataset.tab;
+    
+    // Aggiorna la UI rimuovendo/aggiungendo le classi 'active'
     tabBtns.forEach(b => b.classList.remove('active'));
     tabContents.forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`tab-${target}`).classList.add('active');
+    
+    // Salva la scelta nel browser
+    localStorage.setItem('orto_active_tab', target);
   });
 });
 
@@ -98,21 +123,28 @@ tabBtns.forEach(btn => {
 function creaMappaOrto() {
   const container = document.getElementById('garden-map');
 
-  // Scale: 1m = 60 units in SVG
+  // Scale: 1m = 60 units in SVG 
   const S = 60;
-  const GAP = 15;        // gap between beds (pathway)
-  const MARGIN = 40;     // margin around the garden
+  
+  // Perimeter 7m x 6.3m
+  const totalW = 7 * S;
+  const totalH = 6.3 * S;
+  
+  const MARGIN = 0.5 * S;        // 0.5m margin from perimeter (left/right)
+  const TOP_MARGIN = 0.1 * S;    // 10cm margin from top perimeter
+  const GAP = 0.5 * S;           // 0.5m gap between most beds
+  const A2_A3_GAP = 1 * S;       // 1m gap between A2 and A3
 
   // Beds dimensions in meters
   const leftBedW = 1;    // 1m wide
-  const leftBedH = 5;    // 5m long (vertical)
+  const leftBedH = 5.2;  // 5.2m long (vertical)
   const rightBedW = 1;   // 1m wide
   const rightBedH = 6;   // 6m long (vertical)
   const rightBedCount = 3;
 
   // Calculate positions
   const leftX = MARGIN;
-  const leftY = MARGIN;
+  const leftY = TOP_MARGIN;
   const leftW = leftBedW * S;
   const leftH = leftBedH * S;
 
@@ -121,18 +153,26 @@ function creaMappaOrto() {
   const rightW = rightBedW * S;
   const rightH = rightBedH * S;
 
-  // Shed: below the left bed, same X, fills remaining height to match right beds
-  const shedX = leftX;
-  const shedY = leftY + leftH + GAP;
-  const shedW = leftW;
-  const shedH = rightH - leftH - GAP; // remaining space
+  const rightBedsX = [];
+  let currentX = rightStartX;
+  for (let i = 0; i < rightBedCount; i++) {
+    rightBedsX.push(currentX);
+    const currentGap = (i === 0) ? A2_A3_GAP : GAP;
+    currentX += rightW + currentGap;
+  }
 
-  // Total SVG dimensions
-  const totalW = rightStartX + (rightBedCount * rightW) + ((rightBedCount - 1) * GAP) + MARGIN;
-  const totalH = MARGIN + rightH + MARGIN;
+  // Shed: 1.2m x 0.6m, 5cm from left perimeter, 30cm from left bed
+  const shedX = 0.05 * S;
+  const shedY = leftY + leftH + (0.3 * S);
+  const shedW = 1.2 * S;
+  const shedH = 0.6 * S;
+
+  // SVG dimensions for viewBox to avoid clipping if elements overflow
+  const viewW = totalW;
+  const viewH = Math.max(totalH, shedY + shedH, leftY + rightH);
 
   // Build SVG
-  let svg = `<svg viewBox="0 0 ${totalW} ${totalH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa dell'orto">`;
+  let svg = `<svg viewBox="0 0 ${viewW} ${viewH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa dell'orto">`;
 
   // Background pattern (soil texture)
   svg += `
@@ -165,14 +205,7 @@ function creaMappaOrto() {
   svg += `<rect width="${totalW}" height="${totalH}" fill="var(--bg-elevated)" rx="8"/>`;
   svg += `<rect width="${totalW}" height="${totalH}" fill="url(#soil-pattern)" rx="8"/>`;
 
-  // Pathway between left and right beds
-  svg += `<rect x="${leftX + leftW}" y="${MARGIN}" width="${GAP}" height="${rightH}" fill="var(--path-color)" rx="2"/>`;
 
-  // Pathways between right beds
-  for (let i = 0; i < rightBedCount - 1; i++) {
-    const pathX = rightStartX + (i + 1) * rightW + i * GAP;
-    svg += `<rect x="${pathX}" y="${MARGIN}" width="${GAP}" height="${rightH}" fill="var(--path-color)" rx="2"/>`;
-  }
 
   // ---- Left Bed (Aiuola 1: 5m x 1m) ----
   svg += `
@@ -182,29 +215,47 @@ function creaMappaOrto() {
         style="transition: all 0.3s ease"/>
       <rect x="${leftX}" y="${leftY}" width="${leftW}" height="${leftH}" 
         fill="url(#bed-pattern)" rx="4"/>
-      <text x="${leftX + leftW/2}" y="${leftY + leftH/2}" class="bed-label" 
-        dominant-baseline="middle">A1</text>
-      <text x="${leftX + leftW/2}" y="${leftY + leftH/2 + 14}" class="bed-label" 
-        dominant-baseline="middle" style="font-size:8px; font-weight:400; opacity:0.7">5×1m</text>
     </g>
   `;
 
-  // ---- Tool Shed (Casotto) ----
+  // ---- Base Casotto e Botte ----
+  svg += `
+    <rect x="${shedX}" y="${shedY}" width="${shedW}" height="${shedH}" 
+      fill="var(--shed-fill)" stroke="var(--shed-stroke)" stroke-width="1.5" rx="4"
+      stroke-dasharray="4,3"/>
+  `;
+
+  const botteW = shedW / 2;
+  const casottoW = shedW / 2;
+  const botteCx = shedX + botteW / 2;
+  const casottoCx = shedX + botteW + casottoW / 2;
+  const cy = shedY + shedH / 2;
+  const r = (Math.min(botteW, shedH) / 2) - 2;
+
+  // Botte (cerchio a sinistra)
   svg += `
     <g>
-      <rect x="${shedX}" y="${shedY}" width="${shedW}" height="${shedH}" 
-        fill="var(--shed-fill)" stroke="var(--shed-stroke)" stroke-width="1.5" rx="4"
-        stroke-dasharray="4,3"/>
-      <text x="${shedX + shedW/2}" y="${shedY + shedH/2 - 5}" class="shed-label" 
+      <circle cx="${botteCx}" cy="${cy}" r="${r}" 
+        fill="rgba(6, 182, 212, 0.1)" stroke="var(--cyan)" stroke-width="1.5"/>
+      <text x="${botteCx}" y="${cy}" class="shed-label" 
+        dominant-baseline="middle">💧</text>
+    </g>
+  `;
+
+  // Quadrato Casotto (a destra)
+  const pad = 4;
+  svg += `
+    <g>
+      <rect x="${shedX + botteW + pad}" y="${shedY + pad}" width="${casottoW - pad*2}" height="${shedH - pad*2}" 
+        fill="rgba(255, 255, 255, 0.05)" stroke="var(--shed-stroke)" stroke-width="1.5" rx="4"/>
+      <text x="${casottoCx}" y="${cy}" class="shed-label" 
         dominant-baseline="middle">🏠</text>
-      <text x="${shedX + shedW/2}" y="${shedY + shedH/2 + 10}" class="shed-label" 
-        dominant-baseline="middle" style="font-size:7px; font-weight:400;">Casotto</text>
     </g>
   `;
 
   // ---- Right Beds (Aiuole 2, 3, 4: 6m x 1m each) ----
   for (let i = 0; i < rightBedCount; i++) {
-    const bx = rightStartX + i * (rightW + GAP);
+    const bx = rightBedsX[i];
     const by = leftY;
     const bedNum = i + 2;
 
@@ -215,48 +266,30 @@ function creaMappaOrto() {
           style="transition: all 0.3s ease"/>
         <rect x="${bx}" y="${by}" width="${rightW}" height="${rightH}" 
           fill="url(#bed-pattern)" rx="4"/>
-        <text x="${bx + rightW/2}" y="${by + rightH/2}" class="bed-label" 
-          dominant-baseline="middle">A${bedNum}</text>
-        <text x="${bx + rightW/2}" y="${by + rightH/2 + 14}" class="bed-label" 
-          dominant-baseline="middle" style="font-size:8px; font-weight:400; opacity:0.7">6×1m</text>
+
       </g>
     `;
   }
 
-  // ---- Dimension annotations ----
-  // Left bed height dimension
-  const dimOffset = 18;
-  svg += `
-    <line x1="${leftX - dimOffset}" y1="${leftY}" x2="${leftX - dimOffset}" y2="${leftY + leftH}" class="dimension-line"/>
-    <line x1="${leftX - dimOffset - 4}" y1="${leftY}" x2="${leftX - dimOffset + 4}" y2="${leftY}" class="dimension-line" stroke-dasharray="none"/>
-    <line x1="${leftX - dimOffset - 4}" y1="${leftY + leftH}" x2="${leftX - dimOffset + 4}" y2="${leftY + leftH}" class="dimension-line" stroke-dasharray="none"/>
-    <text x="${leftX - dimOffset}" y="${leftY + leftH/2}" class="dimension-text" dominant-baseline="middle" transform="rotate(-90, ${leftX - dimOffset}, ${leftY + leftH/2})">5m</text>
-  `;
+  // ---- Small beds between A2 and A3 ----
+  const smallBedW = 0.26 * S;
+  const smallBedH = 2.15 * S;
+  // 2 beds, so 3 gaps (top, middle, bottom) for perfect centering
+  const smallBedGap = (rightH - 2 * smallBedH) / 3;
+  const smallBedX = rightBedsX[0] + rightW + A2_A3_GAP / 2 - smallBedW / 2;
 
-  // Right bed height dimension
-  const lastRightX = rightStartX + (rightBedCount - 1) * (rightW + GAP) + rightW;
-  svg += `
-    <line x1="${lastRightX + dimOffset}" y1="${leftY}" x2="${lastRightX + dimOffset}" y2="${leftY + rightH}" class="dimension-line"/>
-    <line x1="${lastRightX + dimOffset - 4}" y1="${leftY}" x2="${lastRightX + dimOffset + 4}" y2="${leftY}" class="dimension-line" stroke-dasharray="none"/>
-    <line x1="${lastRightX + dimOffset - 4}" y1="${leftY + rightH}" x2="${lastRightX + dimOffset + 4}" y2="${leftY + rightH}" class="dimension-line" stroke-dasharray="none"/>
-    <text x="${lastRightX + dimOffset}" y="${leftY + rightH/2}" class="dimension-text" dominant-baseline="middle" transform="rotate(90, ${lastRightX + dimOffset}, ${leftY + rightH/2})">6m</text>
-  `;
-
-  // Width dimension (top)
-  svg += `
-    <line x1="${leftX}" y1="${leftY - dimOffset}" x2="${leftX + leftW}" y2="${leftY - dimOffset}" class="dimension-line"/>
-    <line x1="${leftX}" y1="${leftY - dimOffset - 4}" x2="${leftX}" y2="${leftY - dimOffset + 4}" class="dimension-line" stroke-dasharray="none"/>
-    <line x1="${leftX + leftW}" y1="${leftY - dimOffset - 4}" x2="${leftX + leftW}" y2="${leftY - dimOffset + 4}" class="dimension-line" stroke-dasharray="none"/>
-    <text x="${leftX + leftW/2}" y="${leftY - dimOffset - 5}" class="dimension-text">1m</text>
-  `;
-
-  // North arrow indicator
-  svg += `
-    <g transform="translate(${totalW - MARGIN - 5}, ${MARGIN + 10})">
-      <polygon points="0,-12 4,0 -4,0" fill="var(--text-muted)" opacity="0.5"/>
-      <text x="0" y="10" class="dimension-text" dominant-baseline="hanging">N</text>
-    </g>
-  `;
+  for (let j = 0; j < 2; j++) {
+    const sby = leftY + smallBedGap + j * (smallBedH + smallBedGap);
+    svg += `
+      <g class="bed-rect" data-bed="small-${j}">
+        <rect x="${smallBedX}" y="${sby}" width="${smallBedW}" height="${smallBedH}" 
+          fill="var(--bed-fill)" stroke="var(--bed-stroke)" stroke-width="1.5" rx="4"
+          style="transition: all 0.3s ease"/>
+        <rect x="${smallBedX}" y="${sby}" width="${smallBedW}" height="${smallBedH}" 
+          fill="url(#bed-pattern)" rx="4"/>
+      </g>
+    `;
+  }
 
   svg += `</svg>`;
   container.innerHTML = svg;
@@ -440,9 +473,10 @@ async function aggiornaStazione(stazione, index) {
 function creaPompa(pompa) {
   const div = document.createElement("div");
   div.className = "pump-card";
+  const icon = pompa.icona || "💦";
   div.innerHTML = `
     <div class="pump-info">
-      <div class="pump-name">💦 ${pompa.nome}</div>
+      <div class="pump-name">${icon} ${pompa.nome}</div>
       <div class="pump-state loading" id="state-${pompa.entity_id}">—</div>
     </div>
     <label class="toggle" aria-label="Attiva ${pompa.nome}">
@@ -512,6 +546,7 @@ async function aggiornaTutto() {
 // INITIALIZATION
 // ================================================
 creaMappaOrto();
+window.addEventListener('resize', creaMappaOrto);
 STAZIONI.forEach((s, i) => creaStazione(s, i));
 POMPE.forEach(creaPompa);
 aggiornaTutto();

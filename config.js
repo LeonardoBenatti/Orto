@@ -4,7 +4,6 @@
 const HA_URL = ""; // lascia vuoto, usa automaticamente lo stesso host della pagina
 
 // Ogni stazione è un gruppo di sensori con un nome visualizzato.
-// Aggiungi nuove stazioni semplicemente copiando un blocco e cambiando i valori.
 const STAZIONI = [
   {
     nome: "Orto Esterno",
@@ -44,8 +43,13 @@ const STAZIONI = [
   },
 ];
 
-// Pompe: aggiungi o rimuovi voci, metti i nomi entity_id esatti
+const ICONA_RICIRCOLO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
+const ICONA_RUBINETTO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
+const ICONA_IRRIGAZIONE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg>`;
+
 const POMPE = [
-  { nome: "Pompa 1", entity_id: "switch.pompa_1" },
-  { nome: "Pompa 2", entity_id: "switch.pompa_2" },
+  { nome: "Ricircolo botte", entity_id: "switch.comandi_orto_ricircolo_acqua", icona: ICONA_RICIRCOLO },
+  { nome: "Rubinetto botte", entity_id: "switch.orto_comandi_orto_rubinetto_botte", icona: ICONA_RUBINETTO },
+  { nome: "Irrigazione", entity_id: "switch.orto_comandi_orto_irrigazione", icona: ICONA_IRRIGAZIONE },
 ];
+
