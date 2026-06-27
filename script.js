@@ -120,6 +120,9 @@ tabBtns.forEach(btn => {
 // We use a coordinate system where 1m = 60px for clarity
 // The garden total: roughly 6m wide (left bed + gap + right beds) x 6m+ tall
 
+// Stored geometry of right beds for sensor placement
+let rightBedGeometry = [];
+
 function creaMappaOrto() {
   const container = document.getElementById('garden-map');
 
@@ -161,6 +164,11 @@ function creaMappaOrto() {
     currentX += rightW + currentGap;
   }
 
+  // Save geometry for sensor placement
+  rightBedGeometry = rightBedsX.map(bx => ({
+    x: bx, y: leftY, w: rightW, h: rightH
+  }));
+
   // Shed: 1.2m x 0.6m, 5cm from left perimeter, 30cm from left bed
   const shedX = 0.05 * S;
   const shedY = leftY + leftH + (0.3 * S);
@@ -191,12 +199,17 @@ function creaMappaOrto() {
           <feMergeNode in="SourceGraphic"/>
         </feMerge>
       </filter>
-      <filter id="sensor-glow">
-        <feGaussianBlur stdDeviation="4" result="blur"/>
-        <feMerge>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="SourceGraphic"/>
-        </feMerge>
+      <filter id="sensor-glow-green">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="sensor-glow-amber">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      </filter>
+      <filter id="sensor-glow-red">
+        <feGaussianBlur stdDeviation="3" result="blur"/>
+        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
       </filter>
     </defs>
   `;
@@ -207,7 +220,7 @@ function creaMappaOrto() {
 
 
 
-  // ---- Left Bed (Aiuola 1: 5m x 1m) ----
+  // ---- Left Bed (Aiuola 1: 5.2m x 1m) ----
   svg += `
     <g class="bed-rect" data-bed="0">
       <rect x="${leftX}" y="${leftY}" width="${leftW}" height="${leftH}" 
@@ -217,6 +230,53 @@ function creaMappaOrto() {
         fill="url(#bed-pattern)" rx="4"/>
     </g>
   `;
+
+  // ---- Humidity label inside Aiuola 1 ----
+  svg += `
+    <text x="${leftX + leftW / 2}" y="${leftY + 14}" 
+      class="bed-humidity-label" id="bed-humidity-aiuola1"
+      text-anchor="middle" dominant-baseline="auto">💧 —%</text>
+  `;
+
+  // ---- Sensor slots for Aiuola 1 ----
+  {
+    const slots = SENSORI_MAPPA.aiuola1 || [];
+    const slotPositions = [0.2, 0.5, 0.8];
+    const sensorCx = leftX + leftW / 2;
+
+    for (let s = 0; s < 3; s++) {
+      const sensorCy = leftY + leftH * slotPositions[s];
+      const slotConfig = slots[s];
+      const hasAssigned = slotConfig && slotConfig.stationIndex !== null;
+      const sensorId = `sensor-aiuola1-${s}`;
+
+      if (hasAssigned) {
+        svg += `
+          <g class="sensor-marker-group" id="${sensorId}" 
+             data-aiuola="aiuola1" data-slot="${s}" 
+             data-station="${slotConfig.stationIndex}"
+             style="cursor:pointer">
+            <circle cx="${sensorCx}" cy="${sensorCy}" r="9" 
+              class="sensor-ring" fill="var(--sensor-empty-fill)" 
+              stroke="var(--text-muted)" stroke-width="1.5"/>
+            <circle cx="${sensorCx}" cy="${sensorCy}" r="4" 
+              class="sensor-dot" fill="var(--text-muted)"/>
+            <text x="${sensorCx}" y="${sensorCy + 17}" 
+              class="sensor-slot-label" id="${sensorId}-label"
+              text-anchor="middle" dominant-baseline="auto">—</text>
+          </g>
+        `;
+      } else {
+        svg += `
+          <g class="sensor-slot-empty" id="${sensorId}">
+            <circle cx="${sensorCx}" cy="${sensorCy}" r="8" 
+              fill="none" stroke="var(--text-muted)" stroke-width="1" 
+              stroke-dasharray="3,3" opacity="0.35"/>
+          </g>
+        `;
+      }
+    }
+  }
 
   // ---- Base Casotto e Botte ----
   svg += `
@@ -254,10 +314,12 @@ function creaMappaOrto() {
   `;
 
   // ---- Right Beds (Aiuole 2, 3, 4: 6m x 1m each) ----
+  const aiuolaKeys = ['aiuola2', 'aiuola3', 'aiuola4'];
   for (let i = 0; i < rightBedCount; i++) {
     const bx = rightBedsX[i];
     const by = leftY;
     const bedNum = i + 2;
+    const aiuolaKey = aiuolaKeys[i];
 
     svg += `
       <g class="bed-rect" data-bed="${bedNum - 1}">
@@ -266,9 +328,55 @@ function creaMappaOrto() {
           style="transition: all 0.3s ease"/>
         <rect x="${bx}" y="${by}" width="${rightW}" height="${rightH}" 
           fill="url(#bed-pattern)" rx="4"/>
-
       </g>
     `;
+
+    // ---- Average humidity label inside the bed (top) ----
+    svg += `
+      <text x="${bx + rightW / 2}" y="${by + 14}" 
+        class="bed-humidity-label" id="bed-humidity-${aiuolaKey}"
+        text-anchor="middle" dominant-baseline="auto">💧 —%</text>
+    `;
+
+    // ---- Sensor slots (3 per bed: top, middle, bottom) ----
+    const slots = SENSORI_MAPPA[aiuolaKey] || [];
+    const slotPositions = [0.18, 0.5, 0.82]; // normalized Y positions within the bed
+    const sensorCx = bx + rightW / 2;        // center X of the bed
+
+    for (let s = 0; s < 3; s++) {
+      const sensorCy = by + rightH * slotPositions[s];
+      const slotConfig = slots[s];
+      const hasAssigned = slotConfig && slotConfig.stationIndex !== null;
+      const sensorId = `sensor-${aiuolaKey}-${s}`;
+
+      if (hasAssigned) {
+        // Active sensor marker — color will be updated by aggiornaSensoriMappa()
+        svg += `
+          <g class="sensor-marker-group" id="${sensorId}" 
+             data-aiuola="${aiuolaKey}" data-slot="${s}" 
+             data-station="${slotConfig.stationIndex}"
+             style="cursor:pointer">
+            <circle cx="${sensorCx}" cy="${sensorCy}" r="9" 
+              class="sensor-ring" fill="var(--sensor-empty-fill)" 
+              stroke="var(--text-muted)" stroke-width="1.5"/>
+            <circle cx="${sensorCx}" cy="${sensorCy}" r="4" 
+              class="sensor-dot" fill="var(--text-muted)"/>
+            <text x="${sensorCx}" y="${sensorCy + 17}" 
+              class="sensor-slot-label" id="${sensorId}-label"
+              text-anchor="middle" dominant-baseline="auto">—</text>
+          </g>
+        `;
+      } else {
+        // Empty slot — dashed circle placeholder
+        svg += `
+          <g class="sensor-slot-empty" id="${sensorId}">
+            <circle cx="${sensorCx}" cy="${sensorCy}" r="8" 
+              fill="none" stroke="var(--text-muted)" stroke-width="1" 
+              stroke-dasharray="3,3" opacity="0.35"/>
+          </g>
+        `;
+      }
+    }
   }
 
   // ---- Small beds between A2 and A3 ----
@@ -293,16 +401,152 @@ function creaMappaOrto() {
 
   svg += `</svg>`;
   container.innerHTML = svg;
+
+  // Attach click events to sensor markers
+  container.querySelectorAll('.sensor-marker-group').forEach(g => {
+    g.addEventListener('click', () => {
+      const stIdx = parseInt(g.dataset.station, 10);
+      if (STAZIONI[stIdx]) {
+        apriModaleSensore(STAZIONI[stIdx], stIdx);
+      }
+    });
+  });
 }
 
 // ================================================
-// SENSOR MARKER PLACEMENT ON MAP
+// SENSOR DATA ON MAP — Battery colors & humidity
 // ================================================
-// This data structure maps sensors to garden bed positions
-// Will be used to place sensors on the map in the future
-const SENSOR_POSITIONS = [
-  // { stationIndex: 0, bed: 0, x: 0.5, y: 0.5 } — normalized position within bed
-];
+
+/**
+ * Determine battery level from a HA state value.
+ * Returns: 'high' | 'medium' | 'low' | 'offline'
+ */
+function livelloBatteria(stateValue) {
+  if (stateValue === 'unavailable' || stateValue === 'unknown' || stateValue === undefined) {
+    return 'offline';
+  }
+  const num = parseFloat(stateValue);
+  if (!isNaN(num)) {
+    if (num >= 60) return 'high';
+    if (num >= 20) return 'medium';
+    if (num >= 1) return 'low';
+    return 'offline';
+  }
+  // Text-based: "low", "middle", "high"
+  const mappa = { high: 'high', middle: 'medium', low: 'low' };
+  return mappa[stateValue] || 'offline';
+}
+
+/**
+ * Color mapping for battery levels
+ */
+const BATTERY_COLORS = {
+  high:    { fill: 'rgba(34,197,94,0.2)',  stroke: '#22c55e', dot: '#22c55e', glow: 'sensor-glow-green' },
+  medium:  { fill: 'rgba(245,158,11,0.2)', stroke: '#f59e0b', dot: '#f59e0b', glow: 'sensor-glow-amber' },
+  low:     { fill: 'rgba(239,68,68,0.2)',  stroke: '#ef4444', dot: '#ef4444', glow: 'sensor-glow-red' },
+  offline: { fill: 'rgba(255,255,255,0.04)', stroke: 'var(--text-muted)', dot: 'var(--text-muted)', glow: '' },
+};
+
+/**
+ * Fetch live data for all mapped sensors and update the SVG markers.
+ * Also computes and displays average humidity per bed.
+ */
+async function aggiornaSensoriMappa() {
+  const aiuolaKeys = ['aiuola1', 'aiuola2', 'aiuola3', 'aiuola4'];
+
+  for (const key of aiuolaKeys) {
+    const slots = SENSORI_MAPPA[key] || [];
+    const humidityValues = [];
+
+    for (let s = 0; s < slots.length; s++) {
+      const cfg = slots[s];
+      if (cfg.stationIndex === null) continue;
+
+      const stazione = STAZIONI[cfg.stationIndex];
+      if (!stazione) continue;
+
+      const sensorId = `sensor-${key}-${s}`;
+      const group = document.getElementById(sensorId);
+      if (!group) continue;
+
+      try {
+        const [batResp, humResp, tempResp] = await Promise.all([
+          getStato(stazione.batteria),
+          getStato(stazione.umidita),
+          getStato(stazione.temperatura),
+        ]);
+
+        // Battery level → color
+        const livello = livelloBatteria(batResp.state);
+        const colors = BATTERY_COLORS[livello];
+
+        const ring = group.querySelector('.sensor-ring');
+        const dot = group.querySelector('.sensor-dot');
+        if (ring) {
+          ring.setAttribute('fill', colors.fill);
+          ring.setAttribute('stroke', colors.stroke);
+          if (colors.glow) {
+            ring.setAttribute('filter', `url(#${colors.glow})`);
+          } else {
+            ring.removeAttribute('filter');
+          }
+        }
+        if (dot) {
+          dot.setAttribute('fill', colors.dot);
+        }
+
+        // Sub-label: show humidity + temp
+        const label = document.getElementById(`${sensorId}-label`);
+        const humVal = parseFloat(humResp.state);
+        const tempVal = parseFloat(tempResp.state);
+        if (label) {
+          const parts = [];
+          if (!isNaN(humVal)) {
+            parts.push(`${Math.round(humVal)}%`);
+            humidityValues.push(humVal);
+          }
+          if (!isNaN(tempVal)) parts.push(`${tempVal.toFixed(1)}°`);
+          label.textContent = parts.length > 0 ? parts.join(' · ') : '—';
+        }
+
+        // Add pulsing class for low battery
+        if (livello === 'low') {
+          group.classList.add('sensor-pulse-warning');
+        } else {
+          group.classList.remove('sensor-pulse-warning');
+        }
+
+      } catch (e) {
+        // On error, mark as offline
+        const ring = group.querySelector('.sensor-ring');
+        const dot = group.querySelector('.sensor-dot');
+        const colors = BATTERY_COLORS.offline;
+        if (ring) {
+          ring.setAttribute('fill', colors.fill);
+          ring.setAttribute('stroke', colors.stroke);
+          ring.removeAttribute('filter');
+        }
+        if (dot) dot.setAttribute('fill', colors.dot);
+
+        const label = document.getElementById(`${sensorId}-label`);
+        if (label) label.textContent = 'offline';
+
+        group.classList.remove('sensor-pulse-warning');
+      }
+    }
+
+    // Update average humidity label above the bed
+    const humLabel = document.getElementById(`bed-humidity-${key}`);
+    if (humLabel) {
+      if (humidityValues.length > 0) {
+        const avg = Math.round(humidityValues.reduce((a, b) => a + b, 0) / humidityValues.length);
+        humLabel.textContent = `💧 ${avg}%`;
+      } else {
+        humLabel.textContent = '💧 —%';
+      }
+    }
+  }
+}
 
 // ================================================
 // SENSOR DETAIL MODAL
@@ -533,6 +777,9 @@ async function aggiornaTutto() {
   );
   for (const p of POMPE) await aggiornaPompa(p);
 
+  // Update sensor markers on the map
+  await aggiornaSensoriMappa();
+
   const almenoUnoOk = risultati.some(r => r !== null);
   const ultimoTimestamp = risultati.find(r => r !== null);
   if (almenoUnoOk) {
@@ -546,7 +793,10 @@ async function aggiornaTutto() {
 // INITIALIZATION
 // ================================================
 creaMappaOrto();
-window.addEventListener('resize', creaMappaOrto);
+window.addEventListener('resize', () => {
+  creaMappaOrto();
+  aggiornaSensoriMappa(); // re-render sensors after resize rebuilds SVG
+});
 STAZIONI.forEach((s, i) => creaStazione(s, i));
 POMPE.forEach(creaPompa);
 aggiornaTutto();

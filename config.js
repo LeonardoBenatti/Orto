@@ -43,6 +43,42 @@ const STAZIONI = [
   },
 ];
 
+// =============================================
+// SENSORI SULLA MAPPA
+// =============================================
+// Mappa sensori → tutte le aiuole grandi (Aiuola 1, 2, 3, 4).
+// Ogni aiuola ha 3 slot (alto, centro, basso).
+// Imposta "stationIndex" all'indice della stazione in STAZIONI per assegnare un sensore.
+// Imposta null per lasciare lo slot vuoto (pronto per il futuro).
+//
+// Esempio: stationIndex: 1 → usa STAZIONI[1] cioè "Sensore01"
+const SENSORI_MAPPA = {
+  // Aiuola 1 (a sinistra, 5.2m x 1m)
+  aiuola1: [
+    { slot: "alto",   stationIndex: null },
+    { slot: "centro", stationIndex: null },
+    { slot: "basso",  stationIndex: null },
+  ],
+  // Aiuola 2 (prima grande a destra)
+  aiuola2: [
+    { slot: "alto",   stationIndex: null },
+    { slot: "centro", stationIndex: null },
+    { slot: "basso",  stationIndex: null },
+  ],
+  // Aiuola 3 (seconda grande a destra)
+  aiuola3: [
+    { slot: "alto",   stationIndex: null },
+    { slot: "centro", stationIndex: null },
+    { slot: "basso",  stationIndex: null },
+  ],
+  // Aiuola 4 (terza grande a destra)
+  aiuola4: [
+    { slot: "alto",   stationIndex: null },
+    { slot: "centro", stationIndex: null },
+    { slot: "basso",  stationIndex: null },
+  ],
+};
+
 const ICONA_RICIRCOLO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>`;
 const ICONA_RUBINETTO = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`;
 const ICONA_IRRIGAZIONE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg>`;

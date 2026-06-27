@@ -41,6 +41,7 @@
   --path-color: rgba(255, 255, 255, 0.04);
   --sensor-color: #3b82f6;
   --sensor-glow: rgba(59, 130, 246, 0.4);
+  --sensor-empty-fill: rgba(255, 255, 255, 0.04);
 
   /* Spacing & Radii */
   --radius: 16px;
@@ -229,6 +230,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 1rem 1.25rem;
   border-bottom: 1px solid var(--border);
 }
@@ -241,10 +244,18 @@ body {
 
 .map-legend {
   display: flex;
-  gap: 14px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
 }
 
-.legend-item {
+.legend-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.legend-status-item {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -252,20 +263,16 @@ body {
   color: var(--text-secondary);
 }
 
-.legend-color {
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
-  opacity: 0.7;
-}
-
-.legend-dot {
+.legend-status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: var(--sensor-color);
-  box-shadow: 0 0 6px var(--sensor-glow);
 }
+
+.legend-status-dot.high { background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.4); }
+.legend-status-dot.medium { background: #f59e0b; box-shadow: 0 0 5px rgba(245,158,11,0.4); }
+.legend-status-dot.low { background: #ef4444; box-shadow: 0 0 5px rgba(239,68,68,0.4); }
+.legend-status-dot.offline { background: var(--text-muted); opacity: 0.5; }
 
 .garden-map {
   padding: 1.5rem;
@@ -341,6 +348,90 @@ body {
   fill: var(--text-muted);
   text-anchor: middle;
   opacity: 0.6;
+}
+
+/* ---- Sensor Markers on Map ---- */
+.sensor-marker-group {
+  transition: transform 0.2s var(--ease);
+}
+
+.sensor-marker-group:hover {
+  transform: scale(1.2);
+}
+
+.sensor-ring {
+  transition: fill 0.4s var(--ease), stroke 0.4s var(--ease);
+}
+
+.sensor-dot {
+  transition: fill 0.4s var(--ease);
+}
+
+.sensor-slot-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 7px;
+  font-weight: 500;
+  fill: var(--text-secondary);
+  pointer-events: none;
+}
+
+.sensor-slot-empty circle {
+  transition: opacity 0.3s var(--ease);
+}
+
+/* Humidity label above each bed */
+.bed-humidity-label {
+  font-family: 'Inter', sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  fill: var(--blue);
+  letter-spacing: 0.02em;
+}
+
+/* Pulsing red animation for low-battery sensors */
+@keyframes sensor-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.sensor-pulse-warning .sensor-ring {
+  animation: sensor-pulse 1.8s ease-in-out infinite;
+}
+
+/* ---- Map Legend: battery status ---- */
+.legend-battery {
+  display: flex;
+  gap: 10px;
+  margin-left: 6px;
+  padding-left: 10px;
+  border-left: 1px solid var(--border);
+}
+
+.legend-battery-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.legend-battery-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.legend-battery-dot.high { background: #22c55e; box-shadow: 0 0 4px rgba(34,197,94,0.4); }
+.legend-battery-dot.medium { background: #f59e0b; box-shadow: 0 0 4px rgba(245,158,11,0.4); }
+.legend-battery-dot.low { background: #ef4444; box-shadow: 0 0 4px rgba(239,68,68,0.4); }
+.legend-battery-dot.offline { background: var(--text-muted); opacity: 0.5; }
+
+.legend-empty-slot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px dashed var(--text-muted);
+  opacity: 0.5;
 }
 
 /* ================================================
