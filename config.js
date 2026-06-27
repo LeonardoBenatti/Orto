@@ -62,7 +62,7 @@ const SENSORI_MAPPA = {
   // Aiuola 2 (prima grande a destra)
   aiuola2: [
     { slot: "alto",   stationIndex: null },
-    { slot: "centro", stationIndex: 3 },
+    { slot: "centro", stationIndex: 2 },
     { slot: "basso",  stationIndex: null },
   ],
   // Aiuola 3 (seconda grande a destra)
