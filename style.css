@@ -353,6 +353,8 @@ body {
 /* ---- Sensor Markers on Map ---- */
 .sensor-marker-group {
   transition: transform 0.2s var(--ease);
+  transform-box: fill-box;
+  transform-origin: center;
 }
 
 .sensor-marker-group:hover {
@@ -382,10 +384,12 @@ body {
 /* Humidity label above each bed */
 .bed-humidity-label {
   font-family: 'Inter', sans-serif;
-  font-size: 9px;
-  font-weight: 600;
-  fill: var(--blue);
-  letter-spacing: 0.02em;
+  font-size: 11px;
+  font-weight: 700;
+  fill: #60c8ff;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 8px rgba(96, 200, 255, 0.6);
+}
 }
 
 /* Pulsing red animation for low-battery sensors */

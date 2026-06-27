@@ -232,11 +232,17 @@ function creaMappaOrto() {
   `;
 
   // ---- Humidity label inside Aiuola 1 ----
-  svg += `
-    <text x="${leftX + leftW / 2}" y="${leftY + 14}" 
-      class="bed-humidity-label" id="bed-humidity-aiuola1"
-      text-anchor="middle" dominant-baseline="auto">💧 —%</text>
-  `;
+  {
+    const lx = leftX + leftW / 2;
+    const ly = leftY + 18;
+    svg += `
+      <rect x="${lx - 20}" y="${ly - 10}" width="40" height="14" 
+        rx="7" fill="rgba(59,130,246,0.18)" stroke="rgba(96,200,255,0.25)" stroke-width="0.5"/>
+      <text x="${lx}" y="${ly}" 
+        class="bed-humidity-label" id="bed-humidity-aiuola1"
+        text-anchor="middle" dominant-baseline="auto">—%</text>
+    `;
+  }
 
   // ---- Sensor slots for Aiuola 1 ----
   {
@@ -332,11 +338,17 @@ function creaMappaOrto() {
     `;
 
     // ---- Average humidity label inside the bed (top) ----
-    svg += `
-      <text x="${bx + rightW / 2}" y="${by + 14}" 
-        class="bed-humidity-label" id="bed-humidity-${aiuolaKey}"
-        text-anchor="middle" dominant-baseline="auto">💧 —%</text>
-    `;
+    {
+      const lx = bx + rightW / 2;
+      const ly = by + 18;
+      svg += `
+        <rect x="${lx - 20}" y="${ly - 10}" width="40" height="14" 
+          rx="7" fill="rgba(59,130,246,0.18)" stroke="rgba(96,200,255,0.25)" stroke-width="0.5"/>
+        <text x="${lx}" y="${ly}" 
+          class="bed-humidity-label" id="bed-humidity-${aiuolaKey}"
+          text-anchor="middle" dominant-baseline="auto">—%</text>
+      `;
+    }
 
     // ---- Sensor slots (3 per bed: top, middle, bottom) ----
     const slots = SENSORI_MAPPA[aiuolaKey] || [];
@@ -470,10 +482,9 @@ async function aggiornaSensoriMappa() {
       if (!group) continue;
 
       try {
-        const [batResp, humResp, tempResp] = await Promise.all([
+        const [batResp, humResp] = await Promise.all([
           getStato(stazione.batteria),
           getStato(stazione.umidita),
-          getStato(stazione.temperatura),
         ]);
 
         // Battery level → color
@@ -495,18 +506,16 @@ async function aggiornaSensoriMappa() {
           dot.setAttribute('fill', colors.dot);
         }
 
-        // Sub-label: show humidity + temp
+        // Sub-label: show humidity only
         const label = document.getElementById(`${sensorId}-label`);
         const humVal = parseFloat(humResp.state);
-        const tempVal = parseFloat(tempResp.state);
         if (label) {
-          const parts = [];
           if (!isNaN(humVal)) {
-            parts.push(`${Math.round(humVal)}%`);
             humidityValues.push(humVal);
+            label.textContent = `${Math.round(humVal)}%`;
+          } else {
+            label.textContent = '—';
           }
-          if (!isNaN(tempVal)) parts.push(`${tempVal.toFixed(1)}°`);
-          label.textContent = parts.length > 0 ? parts.join(' · ') : '—';
         }
 
         // Add pulsing class for low battery
@@ -542,7 +551,7 @@ async function aggiornaSensoriMappa() {
         const avg = Math.round(humidityValues.reduce((a, b) => a + b, 0) / humidityValues.length);
         humLabel.textContent = `💧 ${avg}%`;
       } else {
-        humLabel.textContent = '💧 —%';
+        humLabel.textContent = `—%`;
       }
     }
   }
