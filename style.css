@@ -5,43 +5,43 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* Core palette */
-  --bg: #0c0f14;
-  --bg-elevated: #141820;
-  --surface: #1a1f2b;
-  --surface-hover: #222838;
-  --border: rgba(255, 255, 255, 0.06);
-  --border-light: rgba(255, 255, 255, 0.1);
+  /* Core palette — Light theme (default) */
+  --bg: #f0f4f0;
+  --bg-elevated: #ffffff;
+  --surface: #ffffff;
+  --surface-hover: #f5f8f5;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-light: rgba(0, 0, 0, 0.13);
 
   /* Text */
-  --text: #e8ecf4;
-  --text-secondary: #8b93a7;
-  --text-muted: #545d72;
+  --text: #1a2215;
+  --text-secondary: #4b5e42;
+  --text-muted: #8fa082;
 
   /* Accent Colors */
-  --green: #22c55e;
-  --green-dim: rgba(34, 197, 94, 0.15);
-  --green-glow: rgba(34, 197, 94, 0.3);
-  --red: #ef4444;
-  --red-dim: rgba(239, 68, 68, 0.15);
-  --blue: #3b82f6;
-  --blue-dim: rgba(59, 130, 246, 0.12);
-  --amber: #f59e0b;
-  --amber-dim: rgba(245, 158, 11, 0.15);
-  --cyan: #06b6d4;
-  --purple: #a855f7;
+  --green: #16a34a;
+  --green-dim: rgba(22, 163, 74, 0.12);
+  --green-glow: rgba(22, 163, 74, 0.25);
+  --red: #dc2626;
+  --red-dim: rgba(220, 38, 38, 0.1);
+  --blue: #2563eb;
+  --blue-dim: rgba(37, 99, 235, 0.1);
+  --amber: #d97706;
+  --amber-dim: rgba(217, 119, 6, 0.12);
+  --cyan: #0891b2;
+  --purple: #9333ea;
 
   /* Garden Map */
-  --bed-color: #22c55e;
-  --bed-fill: rgba(34, 197, 94, 0.12);
-  --bed-stroke: rgba(34, 197, 94, 0.5);
-  --shed-color: #f59e0b;
-  --shed-fill: rgba(245, 158, 11, 0.1);
-  --shed-stroke: rgba(245, 158, 11, 0.4);
-  --path-color: rgba(255, 255, 255, 0.04);
-  --sensor-color: #3b82f6;
-  --sensor-glow: rgba(59, 130, 246, 0.4);
-  --sensor-empty-fill: rgba(255, 255, 255, 0.04);
+  --bed-color: #16a34a;
+  --bed-fill: rgba(22, 163, 74, 0.1);
+  --bed-stroke: rgba(22, 163, 74, 0.45);
+  --shed-color: #d97706;
+  --shed-fill: rgba(217, 119, 6, 0.08);
+  --shed-stroke: rgba(217, 119, 6, 0.35);
+  --path-color: rgba(0, 0, 0, 0.04);
+  --sensor-color: #2563eb;
+  --sensor-glow: rgba(37, 99, 235, 0.35);
+  --sensor-empty-fill: rgba(0, 0, 0, 0.04);
 
   /* Spacing & Radii */
   --radius: 16px;
@@ -50,6 +50,44 @@
 
   /* Transitions */
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0c0f14;
+    --bg-elevated: #141820;
+    --surface: #1a1f2b;
+    --surface-hover: #222838;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-light: rgba(255, 255, 255, 0.1);
+
+    --text: #e8ecf4;
+    --text-secondary: #8b93a7;
+    --text-muted: #545d72;
+
+    --green: #22c55e;
+    --green-dim: rgba(34, 197, 94, 0.15);
+    --green-glow: rgba(34, 197, 94, 0.3);
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.15);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59, 130, 246, 0.12);
+    --amber: #f59e0b;
+    --amber-dim: rgba(245, 158, 11, 0.15);
+    --cyan: #06b6d4;
+    --purple: #a855f7;
+
+    --bed-color: #22c55e;
+    --bed-fill: rgba(34, 197, 94, 0.12);
+    --bed-stroke: rgba(34, 197, 94, 0.5);
+    --shed-color: #f59e0b;
+    --shed-fill: rgba(245, 158, 11, 0.1);
+    --shed-stroke: rgba(245, 158, 11, 0.4);
+    --path-color: rgba(255, 255, 255, 0.04);
+    --sensor-color: #3b82f6;
+    --sensor-glow: rgba(59, 130, 246, 0.4);
+    --sensor-empty-fill: rgba(255, 255, 255, 0.04);
+  }
 }
 
 /* ---- Base ---- */
