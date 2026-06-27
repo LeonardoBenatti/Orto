@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div class="app">
@@ -92,7 +91,11 @@
 </div>
 
 <script src="token.js"></script>
-<script src="config.js"></script>
-<script src="script.js"></script>
+<script>
+  const v = Date.now();
+  document.write(`<link rel="stylesheet" href="style.css?v=${v}">`);
+  document.write(`<script src="config.js?v=${v}"><\/script>`);
+  document.write(`<script src="script.js?v=${v}"><\/script>`);
+</script>
 </body>
 </html>
