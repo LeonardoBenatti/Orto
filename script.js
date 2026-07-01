@@ -745,8 +745,21 @@ function creaPompa(pompa) {
 
   const checkbox = document.getElementById(`toggle-${pompa.entity_id}`);
   checkbox.addEventListener("change", async () => {
-    await setStato(pompa.entity_id, checkbox.checked);
-    setTimeout(() => aggiornaPompa(pompa), 800);
+    const stateEl = document.getElementById(`state-${pompa.entity_id}`);
+    if (stateEl) stateEl.classList.add("loading");
+    checkbox.disabled = true;
+
+    try {
+      await setStato(pompa.entity_id, checkbox.checked);
+    } catch (e) {
+      console.error(e);
+    }
+
+    // Aspettiamo 3.5 secondi per dispositivi lenti (come le valvole RF)
+    setTimeout(async () => {
+      await aggiornaPompa(pompa);
+      checkbox.disabled = false;
+    }, 3500);
   });
 }
 
