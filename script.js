@@ -16,7 +16,10 @@ async function getStato(entity_id) {
 
 async function setStato(entity_id, accendi) {
   const dominio = entity_id.split(".")[0];
-  const servizio = accendi ? "turn_on" : "turn_off";
+  let servizio = accendi ? "turn_on" : "turn_off";
+  if (dominio === "valve") {
+    servizio = accendi ? "open_valve" : "close_valve";
+  }
   await fetch(`${HA_URL}/api/services/${dominio}/${servizio}`, {
     method: "POST",
     headers: HEADERS,
@@ -750,10 +753,13 @@ function creaPompa(pompa) {
 async function aggiornaPompa(pompa) {
   try {
     const stato = await getStato(pompa.entity_id);
-    const on = stato.state === "on";
+    const on = stato.state === "on" || stato.state === "open";
     const stateEl = document.getElementById(`state-${pompa.entity_id}`);
     const checkbox = document.getElementById(`toggle-${pompa.entity_id}`);
-    stateEl.textContent = on ? "Accesa" : "Spenta";
+    
+    const isValve = pompa.entity_id.startsWith("valve.");
+    stateEl.textContent = on ? (isValve ? "Aperta" : "Accesa") : (isValve ? "Chiusa" : "Spenta");
+    
     stateEl.className = `pump-state ${on ? "on" : ""}`;
     checkbox.checked = on;
   } catch (e) {

@@ -88,9 +88,9 @@ const POMPE = [
   { nome: "Ricircolo botte", entity_id: "switch.comandi_orto_ricircolo_acqua", icona: ICONA_RICIRCOLO },
   { nome: "Rubinetto botte", entity_id: "switch.orto_comandi_orto_rubinetto_botte", icona: ICONA_RUBINETTO },
   { nome: "Pompa irrigazione", entity_id: "switch.orto_comandi_orto_pompa_irrigazione", icona: ICONA_IRRIGAZIONE },
-  { nome: "Valvola Aiuola 1", entity_id: "switch.timer_acqua_rf_valve_1", icona: ICONA_VALVOLA },
-  { nome: "Valvola Aiuola 2", entity_id: "switch.timer_acqua_rf_valve_2", icona: ICONA_VALVOLA },
-  { nome: "Valvola Aiuola 3", entity_id: "switch.timer_acqua_rf_valve_3", icona: ICONA_VALVOLA },
-  { nome: "Valvola Aiuola 4", entity_id: "switch.timer_acqua_rf_valve_4", icona: ICONA_VALVOLA },
+  { nome: "Valvola Aiuola 1", entity_id: "valve.timer_acqua_rf_valve_1", icona: ICONA_VALVOLA },
+  { nome: "Valvola Aiuola 2", entity_id: "valve.timer_acqua_rf_valve_2", icona: ICONA_VALVOLA },
+  { nome: "Valvola Aiuola 3", entity_id: "valve.timer_acqua_rf_valve_3", icona: ICONA_VALVOLA },
+  { nome: "Valvola Aiuola 4", entity_id: "valve.timer_acqua_rf_valve_4", icona: ICONA_VALVOLA },
 ];
 
