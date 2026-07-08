@@ -137,7 +137,7 @@ function creaMappaOrto() {
   const totalH = 6.3 * S;
   
   const MARGIN = 0.5 * S;        // 0.5m margin from perimeter (left/right)
-  const TOP_MARGIN = 0.1 * S;    // 10cm margin from top perimeter
+  const TOP_MARGIN = 0.6 * S;    // 60cm margin from top perimeter (room for buttons)
   const GAP = 0.5 * S;           // 0.5m gap between most beds
   const A2_A3_GAP = 1 * S;       // 1m gap between A2 and A3
 
@@ -180,7 +180,7 @@ function creaMappaOrto() {
 
   // SVG dimensions for viewBox to avoid clipping if elements overflow
   const viewW = totalW;
-  const viewH = Math.max(totalH, shedY + shedH, leftY + rightH);
+  const viewH = Math.max(totalH, leftY + rightH + 16);
 
   // Build SVG
   let svg = `<svg viewBox="0 0 ${viewW} ${viewH}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mappa dell'orto">`;
@@ -218,8 +218,8 @@ function creaMappaOrto() {
   `;
 
   // Background
-  svg += `<rect width="${totalW}" height="${totalH}" fill="var(--bg-elevated)" rx="8"/>`;
-  svg += `<rect width="${totalW}" height="${totalH}" fill="url(#soil-pattern)" rx="8"/>`;
+  svg += `<rect width="${viewW}" height="${viewH}" fill="var(--bg-elevated)" rx="8"/>`;
+  svg += `<rect width="${viewW}" height="${viewH}" fill="url(#soil-pattern)" rx="8"/>`;
 
 
 
@@ -414,6 +414,81 @@ function creaMappaOrto() {
     `;
   }
 
+  // ================================================
+  // IRRIGATION PIPES (Botte → Aiuole)
+  // ================================================
+  const pipeOffset = 12; // px from left edge of each bed
+  const pipeTopY = leftY + 25; // Top of the vertical pipe in each bed
+
+  const pipeOriginX = botteCx;
+  const pipeOriginY = shedY; // Top of the botte
+
+  const upperTrunkY = shedY - 9; // Just above the shed
+  const lowerTrunkY = leftY + rightH + 8; // Below the right beds
+
+  const slantStartX = shedX + shedW + 12; // Right of the shed
+  const slantEndX = slantStartX + 12; // Slant horizontally
+
+  const aiuola1X = leftX + pipeOffset;
+
+  // Path for Aiuola 1
+  const pathD1 = `M ${pipeOriginX} ${pipeOriginY} L ${pipeOriginX} ${upperTrunkY} L ${aiuola1X} ${upperTrunkY} L ${aiuola1X} ${pipeTopY}`;
+  
+  // Base path for Aiuola 2, 3, 4 (shared trunk to the right)
+  const baseRightPath = `M ${pipeOriginX} ${pipeOriginY} L ${pipeOriginX} ${upperTrunkY} L ${slantStartX} ${upperTrunkY} L ${slantEndX} ${lowerTrunkY}`;
+
+  svg += `<path class="pipe-path" id="pipe-aiuola1" d="${pathD1}"/>`;
+  svg += `<path class="pipe-flow" id="pipe-flow-aiuola1" d="${pathD1}"/>`;
+
+  for (let i = 0; i < rightBedCount; i++) {
+    const aiuolaKey = aiuolaKeys[i];
+    const aX = rightBedsX[i] + pipeOffset;
+    const pathD = `${baseRightPath} L ${aX} ${lowerTrunkY} L ${aX} ${pipeTopY}`;
+
+    svg += `<path class="pipe-path" id="pipe-${aiuolaKey}" d="${pathD}"/>`;
+    svg += `<path class="pipe-flow" id="pipe-flow-${aiuolaKey}" d="${pathD}"/>`;
+  }
+
+  // Junction dot at botte
+  svg += `<circle class="pipe-junction" id="pipe-junction" cx="${pipeOriginX}" cy="${pipeOriginY}" r="3.5"/>`;
+
+  // ================================================
+  // IRRIGATION BUTTONS (above each bed)
+  // ================================================
+  const irrigaBtnW = 52;
+  const irrigaBtnH = 20;
+  const irrigaBtnMargin = 8;
+
+  // Aiuola 1 button
+  {
+    const btnX = leftX + leftW / 2 - irrigaBtnW / 2;
+    const btnY = leftY - irrigaBtnH - irrigaBtnMargin;
+    svg += `
+      <foreignObject x="${btnX}" y="${btnY}" width="${irrigaBtnW}" height="${irrigaBtnH}">
+        <button xmlns="http://www.w3.org/1999/xhtml" class="irriga-btn" id="irriga-btn-aiuola1"
+          data-aiuola="aiuola1" title="Irriga Aiuola 1">
+          💧 Irriga
+        </button>
+      </foreignObject>
+    `;
+  }
+
+  // Aiuole 2, 3, 4 buttons
+  for (let i = 0; i < rightBedCount; i++) {
+    const aiuolaKey = aiuolaKeys[i];
+    const bx = rightBedsX[i];
+    const btnX = bx + rightW / 2 - irrigaBtnW / 2;
+    const btnY = leftY - irrigaBtnH - irrigaBtnMargin;
+    svg += `
+      <foreignObject x="${btnX}" y="${btnY}" width="${irrigaBtnW}" height="${irrigaBtnH}">
+        <button xmlns="http://www.w3.org/1999/xhtml" class="irriga-btn" id="irriga-btn-${aiuolaKey}"
+          data-aiuola="${aiuolaKey}" title="Irriga ${IRRIGAZIONE[aiuolaKey].nome}">
+          💧 Irriga
+        </button>
+      </foreignObject>
+    `;
+  }
+
   svg += `</svg>`;
   container.innerHTML = svg;
 
@@ -423,6 +498,19 @@ function creaMappaOrto() {
       const stIdx = parseInt(g.dataset.station, 10);
       if (STAZIONI[stIdx]) {
         apriModaleSensore(STAZIONI[stIdx], stIdx);
+      }
+    });
+  });
+
+  // Attach click events to irrigation buttons
+  container.querySelectorAll('.irriga-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const aiuolaKey = btn.dataset.aiuola;
+      if (btn.classList.contains('active')) {
+        fermaIrrigazione(aiuolaKey);
+      } else if (!btn.classList.contains('loading')) {
+        sequenzaIrrigazione(aiuolaKey);
       }
     });
   });
@@ -782,6 +870,314 @@ async function aggiornaPompa(pompa) {
 }
 
 // ================================================
+// IRRIGATION CONTROL SYSTEM
+// ================================================
+
+// State tracking for active irrigations
+const irrigazioneAttiva = {}; // { aiuolaKey: { timer: timeoutId, startTime: timestamp, intervalId } }
+
+/**
+ * Poll a HA entity until its state satisfies a condition.
+ * @returns {Promise<boolean>} true if condition met, false if timeout
+ */
+async function aspettaStato(entity_id, condizione, timeoutMs = 30000, intervalMs = 2000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const stato = await getStato(entity_id);
+      if (condizione(stato.state)) return true;
+    } catch (e) { /* retry */ }
+    await new Promise(r => setTimeout(r, intervalMs));
+  }
+  return false;
+}
+
+/**
+ * Start the irrigation sequence for a given aiuola.
+ * Steps: 1) Inverter ON + wait valves online  2) Open valve + wait  3) Pump ON
+ */
+async function sequenzaIrrigazione(aiuolaKey) {
+  const config = IRRIGAZIONE[aiuolaKey];
+  if (!config) return;
+
+  const btn = document.getElementById(`irriga-btn-${aiuolaKey}`);
+  if (!btn) return;
+
+  // Set button to loading state
+  btn.classList.add('loading');
+  btn.classList.remove('active');
+  btn.innerHTML = `<span class="irriga-spinner"></span> Avvio…`;
+
+  try {
+    // ---- STEP 1: Ensure inverter is ON ----
+    const inverterStato = await getStato(INVERTER_ENTITY);
+    if (inverterStato.state !== 'on') {
+      btn.innerHTML = `<span class="irriga-spinner"></span> Inverter…`;
+      await setStato(INVERTER_ENTITY, true);
+
+      // Wait for valve to become available (not 'unavailable')
+      const valvolaOnline = await aspettaStato(
+        config.valvola,
+        (state) => state !== 'unavailable' && state !== 'unknown',
+        30000, 2000
+      );
+
+      if (!valvolaOnline) {
+        btn.classList.remove('loading');
+        btn.innerHTML = `❌ Timeout`;
+        setTimeout(() => { btn.innerHTML = `💧 Irriga`; }, 3000);
+        return;
+      }
+    }
+
+    // ---- STEP 2: Open valve ----
+    btn.innerHTML = `<span class="irriga-spinner"></span> Valvola…`;
+    await setStato(config.valvola, true);
+
+    const valvolaAperta = await aspettaStato(
+      config.valvola,
+      (state) => state === 'open',
+      15000, 2000
+    );
+
+    if (!valvolaAperta) {
+      btn.classList.remove('loading');
+      btn.innerHTML = `❌ Valvola`;
+      setTimeout(() => { btn.innerHTML = `💧 Irriga`; }, 3000);
+      return;
+    }
+
+    // ---- STEP 3: Turn on pump ----
+    btn.innerHTML = `<span class="irriga-spinner"></span> Pompa…`;
+    await setStato(POMPA_IRRIGAZIONE_ENTITY, true);
+
+    // Wait a moment for pump to turn on
+    await new Promise(r => setTimeout(r, 2000));
+
+    // ---- SUCCESS: Mark as active ----
+    btn.classList.remove('loading');
+    btn.classList.add('active');
+    btn.innerHTML = `🟢 Attiva`;
+
+    // Activate pipe animation
+    impostaTuboAttivo(aiuolaKey, true);
+
+    // Start auto-shutoff timer (1 hour)
+    const shutoffTimer = setTimeout(() => {
+      fermaIrrigazione(aiuolaKey);
+    }, IRRIGAZIONE_AUTO_SHUTOFF_MS);
+
+    // Store active state
+    irrigazioneAttiva[aiuolaKey] = {
+      timer: shutoffTimer,
+      startTime: Date.now(),
+    };
+
+    // Show / update timer badge
+    aggiornaTimerBadge();
+
+    // Refresh pump states in the Pompe tab
+    for (const p of POMPE) await aggiornaPompa(p);
+
+  } catch (e) {
+    console.error('Errore sequenza irrigazione:', e);
+    btn.classList.remove('loading');
+    btn.innerHTML = `❌ Errore`;
+    setTimeout(() => { btn.innerHTML = `💧 Irriga`; }, 3000);
+  }
+}
+
+/**
+ * Stop irrigation for a given aiuola:
+ * Close valve, turn off pump (if no other active irrigations), clear timer.
+ */
+async function fermaIrrigazione(aiuolaKey) {
+  const config = IRRIGAZIONE[aiuolaKey];
+  if (!config) return;
+
+  const btn = document.getElementById(`irriga-btn-${aiuolaKey}`);
+
+  // Clear auto-shutoff timer
+  if (irrigazioneAttiva[aiuolaKey]) {
+    clearTimeout(irrigazioneAttiva[aiuolaKey].timer);
+    delete irrigazioneAttiva[aiuolaKey];
+  }
+
+  if (btn) {
+    btn.classList.remove('active');
+    btn.classList.add('loading');
+    btn.innerHTML = `<span class="irriga-spinner"></span> Stop…`;
+  }
+
+  try {
+    // Close valve
+    await setStato(config.valvola, false);
+
+    // If no other irrigations are active, turn off pump
+    const altreAttive = Object.keys(irrigazioneAttiva).length > 0;
+    if (!altreAttive) {
+      await setStato(POMPA_IRRIGAZIONE_ENTITY, false);
+    }
+
+    // Wait for valve to close
+    await aspettaStato(config.valvola, (state) => state === 'closed', 10000, 2000);
+
+  } catch (e) {
+    console.error('Errore stop irrigazione:', e);
+  }
+
+  // Reset button
+  if (btn) {
+    btn.classList.remove('loading', 'active');
+    btn.innerHTML = `💧 Irriga`;
+  }
+
+  // Deactivate pipe animation
+  impostaTuboAttivo(aiuolaKey, false);
+
+  // Update timer badge
+  aggiornaTimerBadge();
+
+  // Refresh pump states
+  for (const p of POMPE) aggiornaPompa(p);
+}
+
+/**
+ * Activate/deactivate pipe visuals for a given aiuola.
+ */
+function impostaTuboAttivo(aiuolaKey, attivo) {
+  const pipe = document.getElementById(`pipe-${aiuolaKey}`);
+  const flow = document.getElementById(`pipe-flow-${aiuolaKey}`);
+  const junction = document.getElementById('pipe-junction');
+
+  if (pipe) pipe.classList.toggle('pipe-active', attivo);
+  if (flow) flow.classList.toggle('pipe-active', attivo);
+
+  // Junction is active if ANY pipe is active
+  if (junction) {
+    const anyActive = Object.keys(irrigazioneAttiva).length > 0 || attivo;
+    junction.classList.toggle('pipe-active', anyActive);
+  }
+}
+
+/**
+ * Sync pipe animations with actual valve states from HA.
+ * Called periodically by aggiornaTutto().
+ */
+async function aggiornaStatoTubi() {
+  const aiuolaKeys = ['aiuola1', 'aiuola2', 'aiuola3', 'aiuola4'];
+  let anyActive = false;
+
+  for (const key of aiuolaKeys) {
+    const config = IRRIGAZIONE[key];
+    if (!config) continue;
+
+    try {
+      const stato = await getStato(config.valvola);
+      const isOpen = stato.state === 'open';
+
+      const pipe = document.getElementById(`pipe-${key}`);
+      const flow = document.getElementById(`pipe-flow-${key}`);
+      if (pipe) pipe.classList.toggle('pipe-active', isOpen);
+      if (flow) flow.classList.toggle('pipe-active', isOpen);
+
+      // Update button state to match reality
+      const btn = document.getElementById(`irriga-btn-${key}`);
+      if (btn && !btn.classList.contains('loading')) {
+        if (isOpen && !irrigazioneAttiva[key]) {
+          // Valve opened externally — show as active but without auto-shutoff
+          btn.classList.add('active');
+          btn.innerHTML = `🟢 Attiva`;
+        } else if (!isOpen && !irrigazioneAttiva[key]) {
+          btn.classList.remove('active');
+          btn.innerHTML = `💧 Irriga`;
+        }
+      }
+
+      if (isOpen) anyActive = true;
+    } catch (e) {
+      // Valve unavailable — leave visual as-is
+    }
+  }
+
+  // Update junction dot
+  const junction = document.getElementById('pipe-junction');
+  if (junction) junction.classList.toggle('pipe-active', anyActive);
+}
+
+// ================================================
+// IRRIGATION TIMER BADGE
+// ================================================
+let timerBadgeInterval = null;
+
+function aggiornaTimerBadge() {
+  const attive = Object.entries(irrigazioneAttiva);
+  let badge = document.getElementById('irriga-timer-badge');
+
+  if (attive.length === 0) {
+    // Remove badge
+    if (badge) badge.remove();
+    if (timerBadgeInterval) {
+      clearInterval(timerBadgeInterval);
+      timerBadgeInterval = null;
+    }
+    return;
+  }
+
+  // Create badge if not exists
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'irriga-timer-badge';
+    badge.id = 'irriga-timer-badge';
+    document.body.appendChild(badge);
+  }
+
+  // Find the earliest start time (primary countdown)
+  const earliest = Math.min(...attive.map(([, v]) => v.startTime));
+  const elapsedMs = Date.now() - earliest;
+  const remainingMs = Math.max(0, IRRIGAZIONE_AUTO_SHUTOFF_MS - elapsedMs);
+
+  const nomiAttive = attive.map(([key]) => IRRIGAZIONE[key].nome).join(', ');
+  const tempoRimasto = formatTempoRimasto(remainingMs);
+
+  badge.innerHTML = `
+    <div class="irriga-timer-dot"></div>
+    <div class="irriga-timer-text">
+      ${nomiAttive} — <span>${tempoRimasto}</span>
+    </div>
+    <button class="irriga-timer-stop" id="irriga-timer-stop-btn" title="Ferma tutte le irrigazioni">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+        <rect x="6" y="6" width="12" height="12" rx="2"/>
+      </svg>
+    </button>
+  `;
+
+  // Attach stop-all button
+  document.getElementById('irriga-timer-stop-btn').addEventListener('click', () => {
+    fermaIrrigazioneTutte();
+  });
+
+  // Start interval for live countdown update
+  if (!timerBadgeInterval) {
+    timerBadgeInterval = setInterval(() => aggiornaTimerBadge(), 1000);
+  }
+}
+
+function formatTempoRimasto(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minuti = Math.floor(totalSeconds / 60);
+  const secondi = totalSeconds % 60;
+  return `${String(minuti).padStart(2, '0')}:${String(secondi).padStart(2, '0')}`;
+}
+
+async function fermaIrrigazioneTutte() {
+  const keys = Object.keys(irrigazioneAttiva);
+  for (const key of keys) {
+    await fermaIrrigazione(key);
+  }
+}
+
+// ================================================
 // CONNECTION STATUS
 // ================================================
 function impostaOnline(ultimoAggiornamento) {
@@ -808,6 +1204,9 @@ async function aggiornaTutto() {
   // Update sensor markers on the map
   await aggiornaSensoriMappa();
 
+  // Update pipe animation states
+  await aggiornaStatoTubi();
+
   const almenoUnoOk = risultati.some(r => r !== null);
   const ultimoTimestamp = risultati.find(r => r !== null);
   if (almenoUnoOk) {
@@ -824,6 +1223,7 @@ creaMappaOrto();
 window.addEventListener('resize', () => {
   creaMappaOrto();
   aggiornaSensoriMappa(); // re-render sensors after resize rebuilds SVG
+  aggiornaStatoTubi();    // re-render pipe states after resize rebuilds SVG
 });
 STAZIONI.forEach((s, i) => creaStazione(s, i));
 POMPE.forEach(creaPompa);

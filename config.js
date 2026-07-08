@@ -96,3 +96,16 @@ const POMPE = [
   { nome: "Valvola Aiuola 4", entity_id: "valve.timer_acqua_rf_valve_4", icona: ICONA_VALVOLA },
 ];
 
+// =============================================
+// CONFIGURAZIONE IRRIGAZIONE
+// =============================================
+const INVERTER_ENTITY = "switch.orto_comandi_orto_alimentazione_inverter";
+const POMPA_IRRIGAZIONE_ENTITY = "switch.orto_comandi_orto_pompa_irrigazione";
+const IRRIGAZIONE_AUTO_SHUTOFF_MS = 60 * 60 * 1000; // 1 ora
+
+const IRRIGAZIONE = {
+  aiuola1: { valvola: "valve.timer_acqua_rf_valve_1", nome: "Aiuola 1" },
+  aiuola2: { valvola: "valve.timer_acqua_rf_valve_2", nome: "Aiuola 2" },
+  aiuola3: { valvola: "valve.timer_acqua_rf_valve_3", nome: "Aiuola 3" },
+  aiuola4: { valvola: "valve.timer_acqua_rf_valve_4", nome: "Aiuola 4" },
+};
