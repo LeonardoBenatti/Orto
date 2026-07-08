@@ -455,9 +455,9 @@ function creaMappaOrto() {
   // ================================================
   // IRRIGATION BUTTONS (above each bed)
   // ================================================
-  const irrigaBtnW = 52;
-  const irrigaBtnH = 20;
-  const irrigaBtnMargin = 8;
+  const irrigaBtnW = 70; // 60px button + 10px padding for shadows
+  const irrigaBtnH = 28; // 22px button + 6px padding for shadows
+  const irrigaBtnMargin = 4;
 
   // Aiuola 1 button
   {
@@ -932,9 +932,13 @@ async function sequenzaIrrigazione(aiuolaKey) {
       if (!valvolaOnline) {
         btn.classList.remove('loading');
         btn.innerHTML = `❌ Timeout`;
-        setTimeout(() => { btn.innerHTML = `💧 Irriga`; }, 3000);
+        setTimeout(() => { btn.innerHTML = `💧 IRRIGA`; }, 3000);
         return;
       }
+
+      // Wait an extra 5 seconds to ensure the RF valve is fully initialized on the network
+      btn.innerHTML = `<span class="irriga-spinner"></span> Rete…`;
+      await new Promise(r => setTimeout(r, 5000));
     }
 
     // ---- STEP 2: Open valve ----
@@ -950,7 +954,7 @@ async function sequenzaIrrigazione(aiuolaKey) {
     if (!valvolaAperta) {
       btn.classList.remove('loading');
       btn.innerHTML = `❌ Valvola`;
-      setTimeout(() => { btn.innerHTML = `💧 Irriga`; }, 3000);
+      setTimeout(() => { btn.innerHTML = `💧 IRRIGA`; }, 3000);
       return;
     }
 
@@ -990,7 +994,7 @@ async function sequenzaIrrigazione(aiuolaKey) {
     console.error('Errore sequenza irrigazione:', e);
     btn.classList.remove('loading');
     btn.innerHTML = `❌ Errore`;
-    setTimeout(() => { btn.innerHTML = `💧 Irriga`; }, 3000);
+    setTimeout(() => { btn.innerHTML = `💧 IRRIGA`; }, 3000);
   }
 }
 
@@ -1044,7 +1048,7 @@ async function fermaIrrigazione(aiuolaKey) {
   // Reset button
   if (btn) {
     btn.classList.remove('loading', 'active');
-    btn.innerHTML = `💧 Irriga`;
+    btn.innerHTML = `💧 IRRIGA`;
   }
 
   // Deactivate pipe animation
@@ -1105,7 +1109,7 @@ async function aggiornaStatoTubi() {
           btn.innerHTML = `🟢 Attiva`;
         } else if (!isOpen && !irrigazioneAttiva[key]) {
           btn.classList.remove('active');
-          btn.innerHTML = `💧 Irriga`;
+          btn.innerHTML = `💧 IRRIGA`;
         }
       }
 
