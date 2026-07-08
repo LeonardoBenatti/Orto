@@ -467,7 +467,7 @@ function creaMappaOrto() {
       <foreignObject x="${btnX}" y="${btnY}" width="${irrigaBtnW}" height="${irrigaBtnH}">
         <button xmlns="http://www.w3.org/1999/xhtml" class="irriga-btn" id="irriga-btn-aiuola1"
           data-aiuola="aiuola1" title="Irriga Aiuola 1">
-          💧 Irriga
+          💧 IRRIGA
         </button>
       </foreignObject>
     `;
@@ -483,7 +483,7 @@ function creaMappaOrto() {
       <foreignObject x="${btnX}" y="${btnY}" width="${irrigaBtnW}" height="${irrigaBtnH}">
         <button xmlns="http://www.w3.org/1999/xhtml" class="irriga-btn" id="irriga-btn-${aiuolaKey}"
           data-aiuola="${aiuolaKey}" title="Irriga ${IRRIGAZIONE[aiuolaKey].nome}">
-          💧 Irriga
+          💧 IRRIGA
         </button>
       </foreignObject>
     `;
@@ -875,6 +875,7 @@ async function aggiornaPompa(pompa) {
 
 // State tracking for active irrigations
 const irrigazioneAttiva = {}; // { aiuolaKey: { timer: timeoutId, startTime: timestamp, intervalId } }
+let inverterOffTimer = null;
 
 /**
  * Poll a HA entity until its state satisfies a condition.
@@ -909,6 +910,12 @@ async function sequenzaIrrigazione(aiuolaKey) {
   btn.innerHTML = `<span class="irriga-spinner"></span> Avvio…`;
 
   try {
+    // Clear inverter turn-off timer if one is pending
+    if (inverterOffTimer) {
+      clearTimeout(inverterOffTimer);
+      inverterOffTimer = null;
+    }
+
     // ---- STEP 1: Ensure inverter is ON ----
     const inverterStato = await getStato(INVERTER_ENTITY);
     if (inverterStato.state !== 'on') {
@@ -1017,6 +1024,14 @@ async function fermaIrrigazione(aiuolaKey) {
     const altreAttive = Object.keys(irrigazioneAttiva).length > 0;
     if (!altreAttive) {
       await setStato(POMPA_IRRIGAZIONE_ENTITY, false);
+      
+      // Spegni l'inverter dopo 5 minuti di inattività
+      inverterOffTimer = setTimeout(async () => {
+        try {
+          await setStato(INVERTER_ENTITY, false);
+          for (const p of POMPE) aggiornaPompa(p);
+        } catch (e) { console.error("Errore spegnimento inverter", e); }
+      }, 5 * 60 * 1000);
     }
 
     // Wait for valve to close
