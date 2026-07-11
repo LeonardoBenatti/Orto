@@ -12,28 +12,16 @@ const STAZIONI = [
     batteria:    "sensor.th_orto_esterno_stato_della_batteria", // testo: low/middle/high
   },
   {
-    nome: "Sensore01",
-    temperatura: "sensor.orto_sensore01_temperatura",
-    umidita:     "sensor.orto_sensore01_umidita",
-    batteria:    "sensor.orto_sensore01_batteria", // verifica se è testo o numero
-  },
-  {
     nome: "Sensore02",
     temperatura: "sensor.orto_sensore02_temperatura",
     umidita:     "sensor.orto_sensore02_umidita",
     batteria:    "sensor.orto_sensore02_batteria", // verifica se è testo o numero
   },
   {
-    nome: "Sensore03",
-    temperatura: "sensor.orto_sensore03_temperatura",
-    umidita:     "sensor.orto_sensore03_umidita",
-    batteria:    "sensor.orto_sensore03_batteria", // verifica se è testo o numero
-  },
-  {
-    nome: "Sensore04",
-    temperatura: "sensor.orto_sensore04_temperatura",
-    umidita:     "sensor.orto_sensore04_umidita",
-    batteria:    "sensor.orto_sensore04_batteria", // verifica se è testo o numero
+    nome: "Sensore07",
+    temperatura: "sensor.orto_sensore07_temperatura",
+    umidita:     "sensor.orto_sensore07_umidita",
+    batteria:    "sensor.orto_sensore07_batteria", // verifica se è testo o numero
   },
   {
     nome: "Soil Fertility",
@@ -62,20 +50,20 @@ const SENSORI_MAPPA = {
   // Aiuola 2 (prima grande a destra)
   aiuola2: [
     { slot: "alto",   stationIndex: null },
-    { slot: "centro", stationIndex: 2 },
+    { slot: "centro", stationIndex: 1 },
     { slot: "basso",  stationIndex: null },
   ],
   // Aiuola 3 (seconda grande a destra)
   aiuola3: [
     { slot: "alto",   stationIndex: null },
     { slot: "centro", stationIndex: null },
-    { slot: "basso",  stationIndex: 5 },
+    { slot: "basso",  stationIndex: 3 },
   ],
   // Aiuola 4 (terza grande a destra)
   aiuola4: [
     { slot: "alto",   stationIndex: null },
     { slot: "centro", stationIndex: null },
-    { slot: "basso",  stationIndex: null },
+    { slot: "basso",  stationIndex: 2 },
   ],
 };
 
