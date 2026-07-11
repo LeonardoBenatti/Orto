@@ -1172,6 +1172,9 @@ async function aggiornaStatoTubi() {
   // Update junction dot
   const junction = document.getElementById('pipe-junction');
   if (junction) junction.classList.toggle('pipe-active', anyActive);
+
+  // Aggiorna la UI del badge timer (fondamentale per ripristinarlo al ricaricamento della pagina)
+  aggiornaTimerBadge();
 }
 
 // ================================================
