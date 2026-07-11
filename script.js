@@ -984,15 +984,22 @@ async function sequenzaIrrigazione(aiuolaKey) {
     // Activate pipe animation
     impostaTuboAttivo(aiuolaKey, true);
 
-    // Start auto-shutoff timer (1 hour)
-    const shutoffTimer = setTimeout(() => {
-      fermaIrrigazione(aiuolaKey);
-    }, IRRIGAZIONE_AUTO_SHUTOFF_MS);
+    // Avvio Timer in HA
+    const inputDurata = document.getElementById("durata-irrigazione");
+    const durataMin = inputDurata ? (parseInt(inputDurata.value, 10) || 60) : 60;
+    const durationStr = `00:${String(durataMin).padStart(2, '0')}:00`;
+    
+    try {
+      await fetch(`${HA_URL}/api/services/timer/start`, {
+        method: "POST",
+        headers: HEADERS,
+        body: JSON.stringify({ entity_id: config.timer, duration: durationStr })
+      });
+    } catch(err) { console.warn("Errore avvio timer HA", err); }
 
-    // Store active state
+    // Store active state local prediction
     irrigazioneAttiva[aiuolaKey] = {
-      timer: shutoffTimer,
-      startTime: Date.now(),
+      finishes_at: new Date(Date.now() + durataMin * 60000).toISOString()
     };
 
     // Show / update timer badge
@@ -1019,11 +1026,17 @@ async function fermaIrrigazione(aiuolaKey) {
 
   const btn = document.getElementById(`irriga-btn-${aiuolaKey}`);
 
-  // Clear auto-shutoff timer
-  if (irrigazioneAttiva[aiuolaKey]) {
-    clearTimeout(irrigazioneAttiva[aiuolaKey].timer);
-    delete irrigazioneAttiva[aiuolaKey];
-  }
+  // Remove from local active state
+  delete irrigazioneAttiva[aiuolaKey];
+
+  // Ferma il Timer in HA
+  try {
+    await fetch(`${HA_URL}/api/services/timer/cancel`, {
+      method: "POST",
+      headers: HEADERS,
+      body: JSON.stringify({ entity_id: config.timer })
+    });
+  } catch(err) { console.warn("Errore cancel timer HA", err); }
 
   if (btn) {
     btn.classList.remove('active');
@@ -1117,8 +1130,20 @@ async function aggiornaStatoTubi() {
     if (!config) continue;
 
     try {
-      const stato = await getStato(config.valvola);
-      const isOpen = stato.state === 'open';
+      // Leggi stato valvola e timer HA
+      const [statoValvola, statoTimer] = await Promise.all([
+        getStato(config.valvola).catch(() => ({state: 'unknown'})),
+        getStato(config.timer).catch(() => ({state: 'idle'}))
+      ]);
+      
+      const isOpen = statoValvola.state === 'open' || statoTimer.state === 'active';
+
+      // Sincronizza stato locale con HA
+      if (statoTimer.state === 'active' && statoTimer.attributes && statoTimer.attributes.finishes_at) {
+         irrigazioneAttiva[key] = { finishes_at: statoTimer.attributes.finishes_at };
+      } else if (statoTimer.state === 'idle') {
+         delete irrigazioneAttiva[key];
+      }
 
       const pipe = document.getElementById(`pipe-${key}`);
       const flow = document.getElementById(`pipe-flow-${key}`);
@@ -1176,10 +1201,16 @@ function aggiornaTimerBadge() {
     document.body.appendChild(badge);
   }
 
-  // Find the earliest start time (primary countdown)
-  const earliest = Math.min(...attive.map(([, v]) => v.startTime));
-  const elapsedMs = Date.now() - earliest;
-  const remainingMs = Math.max(0, IRRIGAZIONE_AUTO_SHUTOFF_MS - elapsedMs);
+  // Find the timer that finishes first
+  let minRemainingMs = Infinity;
+  for (const [, v] of attive) {
+     if (!v.finishes_at) continue;
+     const endMs = new Date(v.finishes_at).getTime();
+     const remain = endMs - Date.now();
+     if (remain > 0 && remain < minRemainingMs) minRemainingMs = remain;
+  }
+  
+  const remainingMs = minRemainingMs === Infinity ? 0 : minRemainingMs;
 
   const nomiAttive = attive.map(([key]) => IRRIGAZIONE[key].nome).join(', ');
   const tempoRimasto = formatTempoRimasto(remainingMs);
@@ -1245,6 +1276,17 @@ async function aggiornaTutto() {
   );
   for (const p of POMPE) await aggiornaPompa(p);
 
+  // Sincronizza input durata
+  try {
+    const inputDurata = document.getElementById("durata-irrigazione");
+    if (inputDurata && document.activeElement !== inputDurata && typeof INPUT_DURATA_ENTITY !== 'undefined') {
+      const durStato = await getStato(INPUT_DURATA_ENTITY);
+      if (durStato && durStato.state) {
+        inputDurata.value = Math.round(parseFloat(durStato.state));
+      }
+    }
+  } catch(e) {}
+
   // Update sensor markers on the map
   await aggiornaSensoriMappa();
 
@@ -1264,6 +1306,24 @@ async function aggiornaTutto() {
 // INITIALIZATION
 // ================================================
 creaMappaOrto();
+
+const inputDurata = document.getElementById("durata-irrigazione");
+if (inputDurata) {
+  inputDurata.addEventListener("change", async (e) => {
+    let val = parseInt(e.target.value, 10);
+    if (isNaN(val) || val < 1) val = 1;
+    if (val > 120) val = 120;
+    e.target.value = val;
+    try {
+      await fetch(`${HA_URL}/api/services/input_number/set_value`, {
+        method: "POST",
+        headers: HEADERS,
+        body: JSON.stringify({ entity_id: typeof INPUT_DURATA_ENTITY !== 'undefined' ? INPUT_DURATA_ENTITY : 'input_number.durata_irrigazione', value: parseFloat(val) })
+      });
+    } catch(err) { console.error("Errore salvataggio durata", err); }
+  });
+}
+
 window.addEventListener('resize', () => {
   creaMappaOrto();
   aggiornaSensoriMappa(); // re-render sensors after resize rebuilds SVG

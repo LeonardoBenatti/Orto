@@ -46,8 +46,15 @@
   <!-- Mappa Tab -->
   <section class="tab-content active" id="tab-mappa">
     <div class="map-container">
-      <div class="map-header">
-        <h2>Mappa dell'Orto</h2>
+      <div class="map-header" style="display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+          <h2>Mappa dell'Orto</h2>
+          <div class="duration-control" style="display: flex; align-items: center; gap: 5px; background: rgba(255,255,255,0.05); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1);">
+            <span title="Durata irrigazione">⏱️</span>
+            <input type="number" id="durata-irrigazione" min="1" max="120" value="60" style="width: 50px; background: transparent; border: none; color: var(--text-main); font-weight: 600; text-align: right; outline: none; font-family: inherit; font-size: 14px;">
+            <span style="font-size: 13px; color: var(--text-muted);">min</span>
+          </div>
+        </div>
         <div class="map-legend">
           <span class="legend-label">Batteria sensori:</span>
           <span class="legend-status-item"><span class="legend-status-dot high"></span>Carico</span>
