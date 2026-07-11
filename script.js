@@ -943,13 +943,24 @@ async function sequenzaIrrigazione(aiuolaKey) {
 
     // ---- STEP 2: Open valve ----
     btn.innerHTML = `<span class="irriga-spinner"></span> Valvola…`;
-    await setStato(config.valvola, true);
-
-    const valvolaAperta = await aspettaStato(
-      config.valvola,
-      (state) => state === 'open',
-      15000, 2000
-    );
+    
+    let valvolaAperta = false;
+    for (let tentativi = 0; tentativi < 3; tentativi++) {
+      try {
+        await setStato(config.valvola, true);
+      } catch (err) {
+        console.warn("Errore comando valvola:", err);
+      }
+      
+      valvolaAperta = await aspettaStato(
+        config.valvola,
+        (state) => state === 'open',
+        8000, 2000
+      );
+      
+      if (valvolaAperta) break;
+      console.warn(`Tentativo ${tentativi + 1} apertura valvola fallito, riprovo...`);
+    }
 
     if (!valvolaAperta) {
       btn.classList.remove('loading');
@@ -1022,18 +1033,32 @@ async function fermaIrrigazione(aiuolaKey) {
 
   try {
     // Close valve
-    await setStato(config.valvola, false);
+    try {
+      await setStato(config.valvola, false);
+    } catch (err) {
+      console.warn("Errore chiusura valvola:", err);
+    }
 
     // If no other irrigations are active, turn off pump
     const altreAttive = Object.keys(irrigazioneAttiva).length > 0;
     if (!altreAttive) {
-      await setStato(POMPA_IRRIGAZIONE_ENTITY, false);
+      try {
+        await setStato(POMPA_IRRIGAZIONE_ENTITY, false);
+      } catch (err) {
+        console.warn("Errore spegnimento pompa:", err);
+      }
       
       // Spegni l'inverter dopo 5 minuti di inattività
+      if (inverterOffTimer) {
+        clearTimeout(inverterOffTimer);
+      }
       inverterOffTimer = setTimeout(async () => {
         try {
-          await setStato(INVERTER_ENTITY, false);
-          for (const p of POMPE) aggiornaPompa(p);
+          // Double check if no irrigations were started in the meantime
+          if (Object.keys(irrigazioneAttiva).length === 0) {
+            await setStato(INVERTER_ENTITY, false);
+            for (const p of POMPE) aggiornaPompa(p);
+          }
         } catch (e) { console.error("Errore spegnimento inverter", e); }
       }, 5 * 60 * 1000);
     }
